@@ -1,8 +1,8 @@
 """
- Copyright (c) 2022, salesforce.com, inc.
- All rights reserved.
- SPDX-License-Identifier: BSD-3-Clause
- For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
+Copyright (c) 2022, salesforce.com, inc.
+All rights reserved.
+SPDX-License-Identifier: BSD-3-Clause
+For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
 """
 
 import math
@@ -16,13 +16,13 @@ from transformers.modeling_outputs import (
     BaseModelOutputWithPastAndCrossAttentions,
     BaseModelOutputWithPoolingAndCrossAttentions,
 )
-from transformers.modeling_utils import (
-    PreTrainedModel,
+from transformers.modeling_utils import PreTrainedModel
+from transformers.models.bert.configuration_bert import BertConfig
+from transformers.pytorch_utils import (
     apply_chunking_to_forward,
     find_pruneable_heads_and_indices,
     prune_linear_layer,
 )
-from transformers.models.bert.configuration_bert import BertConfig
 from transformers.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -453,9 +453,9 @@ class BertLayer(nn.Module):
         present_key_value = self_attention_outputs[-1]
 
         if mode == "multimodal":
-            assert (
-                encoder_hidden_states is not None
-            ), "encoder_hidden_states must be given for cross-attention layers"
+            assert encoder_hidden_states is not None, (
+                "encoder_hidden_states must be given for cross-attention layers"
+            )
             cross_attention_outputs = self.crossattention(
                 attention_output,
                 attention_mask,
@@ -526,7 +526,6 @@ class BertEncoder(nn.Module):
             past_key_value = past_key_values[i] if past_key_values is not None else None
 
             if self.gradient_checkpointing and self.training:
-
                 if use_cache:
                     logger.warn(
                         "`use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`..."

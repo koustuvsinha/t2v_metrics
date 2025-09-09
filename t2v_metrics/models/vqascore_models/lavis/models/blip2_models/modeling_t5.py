@@ -12,8 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" PyTorch T5 model."""
-
+"""PyTorch T5 model."""
 
 import copy
 import math
@@ -25,7 +24,6 @@ import torch
 from torch import nn
 from torch.nn import CrossEntropyLoss
 from torch.utils.checkpoint import checkpoint
-
 from transformers.activations import ACT2FN
 from transformers.modeling_outputs import (
     BaseModelOutput,
@@ -34,6 +32,7 @@ from transformers.modeling_outputs import (
     Seq2SeqModelOutput,
 )
 from transformers.modeling_utils import PreTrainedModel
+from transformers.models.t5.configuration_t5 import T5Config
 from transformers.pytorch_utils import (
     ALL_LAYERNORM_LAYERS,
     find_pruneable_heads_and_indices,
@@ -42,15 +41,15 @@ from transformers.pytorch_utils import (
 from transformers.utils import (
     DUMMY_INPUTS,
     DUMMY_MASK,
+    logging,
+)
+from transformers.utils.doc import (
     add_start_docstrings,
     add_start_docstrings_to_model_forward,
-    is_torch_fx_proxy,
-    logging,
     replace_return_docstrings,
 )
+from transformers.utils.import_utils import is_torch_fx_proxy
 from transformers.utils.model_parallel_utils import assert_device_map, get_device_map
-from transformers.models.t5.configuration_t5 import T5Config
-
 
 logger = logging.get_logger(__name__)
 
@@ -179,9 +178,9 @@ def load_tf_weights_in_t5(model, config, tf_checkpoint_path):
             logger.info(f"Transposing numpy weight of shape {array.shape} for {name}")
             array = np.transpose(array)
         try:
-            assert (
-                pointer.shape == array.shape
-            ), f"Pointer shape {pointer.shape} and array shape {array.shape} mismatched"
+            assert pointer.shape == array.shape, (
+                f"Pointer shape {pointer.shape} and array shape {array.shape} mismatched"
+            )
         except AssertionError as e:
             e.args += (pointer.shape, array.shape)
             raise
@@ -261,7 +260,6 @@ class T5LayerNorm(nn.Module):
         self.variance_epsilon = eps
 
     def forward(self, hidden_states):
-
         # T5 uses a layer_norm which only scales and doesn't shift, which is also known as Root Mean
         # Square Layer Normalization https://arxiv.org/abs/1910.07467 thus varience is calculated
         # w/o mean and there is no bias. Additionally we want to make sure that the accumulation for
@@ -494,9 +492,9 @@ class T5Attention(nn.Module):
         real_seq_length = seq_length
 
         if past_key_value is not None:
-            assert (
-                len(past_key_value) == 2
-            ), f"past_key_value should have 2 past states: keys and values. Got { len(past_key_value)} past states"
+            assert len(past_key_value) == 2, (
+                f"past_key_value should have 2 past states: keys and values. Got {len(past_key_value)} past states"
+            )
             real_seq_length += (
                 past_key_value[0].shape[2] if query_length is None else query_length
             )
@@ -724,7 +722,6 @@ class T5Block(nn.Module):
         output_attentions=False,
         return_dict=True,
     ):
-
         if past_key_value is not None:
             if not self.is_decoder:
                 logger.warning(
@@ -939,9 +936,9 @@ class T5PreTrainedModel(PreTrainedModel):
             shifted_input_ids[..., 1:] = input_ids[..., :-1].clone()
             shifted_input_ids[..., 0] = decoder_start_token_id
 
-        assert (
-            pad_token_id is not None
-        ), "self.model.config.pad_token_id has to be defined."
+        assert pad_token_id is not None, (
+            "self.model.config.pad_token_id has to be defined."
+        )
         # replace possible -100 values in labels by `pad_token_id`
         shifted_input_ids.masked_fill_(shifted_input_ids == -100, pad_token_id)
 
@@ -1069,9 +1066,9 @@ class T5Stack(T5PreTrainedModel):
             )
 
         if inputs_embeds is None:
-            assert (
-                self.embed_tokens is not None
-            ), "You have to initialize the model with valid token embeddings"
+            assert self.embed_tokens is not None, (
+                "You have to initialize the model with valid token embeddings"
+            )
             inputs_embeds = self.embed_tokens(input_ids)
 
         batch_size, seq_length = input_shape
@@ -1084,9 +1081,9 @@ class T5Stack(T5PreTrainedModel):
         )
 
         if use_cache is True:
-            assert (
-                self.is_decoder
-            ), f"`use_cache` can only be set to `True` if {self} is used as a decoder"
+            assert self.is_decoder, (
+                f"`use_cache` can only be set to `True` if {self} is used as a decoder"
+            )
 
         if attention_mask is None:
             attention_mask = torch.ones(
@@ -1904,7 +1901,6 @@ class T5ForConditionalGeneration(T5PreTrainedModel):
         encoder_outputs=None,
         **kwargs,
     ):
-
         # cut decoder_input_ids if past is used
         if past is not None:
             input_ids = input_ids[:, -1:]

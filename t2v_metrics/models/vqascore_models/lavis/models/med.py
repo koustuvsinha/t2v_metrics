@@ -1,52 +1,40 @@
 """
- Copyright (c) 2022, salesforce.com, inc.
- All rights reserved.
- SPDX-License-Identifier: BSD-3-Clause
- For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
- 
- Based on huggingface code base
- https://github.com/huggingface/transformers/blob/v4.15.0/src/transformers/models/bert
+Copyright (c) 2022, salesforce.com, inc.
+All rights reserved.
+SPDX-License-Identifier: BSD-3-Clause
+For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
+
+Based on huggingface code base
+https://github.com/huggingface/transformers/blob/v4.15.0/src/transformers/models/bert
 """
 
 import math
-import os
-import warnings
-from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Tuple
 
 import torch
-from torch import Tensor, device
-import torch.utils.checkpoint
-from torch import nn
-from torch.nn import CrossEntropyLoss
 import torch.nn.functional as F
-from transformers import BatchEncoding, PreTrainedTokenizer
-
+import torch.utils.checkpoint
+from torch import Tensor, device, nn
+from torch.nn import CrossEntropyLoss
 from transformers.activations import ACT2FN
-from transformers.file_utils import (
-    ModelOutput,
-)
 from transformers.modeling_outputs import (
     BaseModelOutputWithPastAndCrossAttentions,
     BaseModelOutputWithPoolingAndCrossAttentions,
     CausalLMOutputWithCrossAttentions,
     MaskedLMOutput,
-    MultipleChoiceModelOutput,
-    NextSentencePredictorOutput,
-    QuestionAnsweringModelOutput,
-    SequenceClassifierOutput,
-    TokenClassifierOutput,
 )
 from transformers.modeling_utils import (
     PreTrainedModel,
+)
+from transformers.models.bert.configuration_bert import BertConfig
+from transformers.pytorch_utils import (
     apply_chunking_to_forward,
     find_pruneable_heads_and_indices,
     prune_linear_layer,
 )
 from transformers.utils import logging
-from transformers.models.bert.configuration_bert import BertConfig
-from ..common.utils import get_abs_path
 
+from ..common.utils import get_abs_path
 from ..models.base_model import BaseEncoder
 
 logging.set_verbosity_error()
@@ -449,9 +437,9 @@ class BertLayer(nn.Module):
         # TODO line 482 in albef/models/xbert.py
         # compatibility for ALBEF and BLIP
         if mode in ["multimodal", "fusion"] and hasattr(self, "crossattention"):
-            assert (
-                encoder_hidden_states is not None
-            ), "encoder_hidden_states must be given for cross-attention layers"
+            assert encoder_hidden_states is not None, (
+                "encoder_hidden_states must be given for cross-attention layers"
+            )
 
             if isinstance(encoder_hidden_states, list):
                 cross_attention_outputs = self.crossattention(
@@ -566,7 +554,6 @@ class BertEncoder(nn.Module):
 
             # TODO pay attention to this.
             if self.gradient_checkpointing and self.training:
-
                 if use_cache:
                     logger.warn(
                         "`use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`..."
@@ -1003,7 +990,6 @@ class BertModel(BertPreTrainedModel):
 
 
 class BertForMaskedLM(BertPreTrainedModel):
-
     _keys_to_ignore_on_load_unexpected = [r"pooler"]
     _keys_to_ignore_on_load_missing = [r"position_ids", r"predictions.decoder.bias"]
 
@@ -1110,9 +1096,9 @@ class BertForMaskedLM(BertPreTrainedModel):
         effective_batch_size = input_shape[0]
 
         #  add a dummy token
-        assert (
-            self.config.pad_token_id is not None
-        ), "The PAD token should be defined for generation"
+        assert self.config.pad_token_id is not None, (
+            "The PAD token should be defined for generation"
+        )
         attention_mask = torch.cat(
             [attention_mask, attention_mask.new_zeros((attention_mask.shape[0], 1))],
             dim=-1,
@@ -1129,7 +1115,6 @@ class BertForMaskedLM(BertPreTrainedModel):
 
 
 class BertLMHeadModel(BertPreTrainedModel):
-
     _keys_to_ignore_on_load_unexpected = [r"pooler"]
     _keys_to_ignore_on_load_missing = [r"position_ids", r"predictions.decoder.bias"]
 
@@ -1304,7 +1289,6 @@ class XBertLMHeadDecoder(BertLMHeadModel):
 
     @classmethod
     def from_config(cls, cfg, from_pretrained=False):
-
         med_config_path = get_abs_path(cfg.get("med_config_path"))
         med_config = BertConfig.from_json_file(med_config_path)
 
@@ -1325,9 +1309,8 @@ class XBertLMHeadDecoder(BertLMHeadModel):
         min_length=10,
         top_p=0.9,
         repetition_penalty=1.0,
-        **kwargs
+        **kwargs,
     ):
-
         if not use_nucleus_sampling:
             num_beams = num_beams
             visual_embeds = visual_embeds.repeat_interleave(num_beams, dim=0)
@@ -1353,7 +1336,7 @@ class XBertLMHeadDecoder(BertLMHeadModel):
                 eos_token_id=sep_token_id,
                 pad_token_id=pad_token_id,
                 repetition_penalty=1.1,
-                **model_kwargs
+                **model_kwargs,
             )
         else:
             # beam search
@@ -1365,7 +1348,7 @@ class XBertLMHeadDecoder(BertLMHeadModel):
                 eos_token_id=sep_token_id,
                 pad_token_id=pad_token_id,
                 repetition_penalty=repetition_penalty,
-                **model_kwargs
+                **model_kwargs,
             )
 
         return outputs
@@ -1374,7 +1357,6 @@ class XBertLMHeadDecoder(BertLMHeadModel):
 class XBertEncoder(BertModel, BaseEncoder):
     @classmethod
     def from_config(cls, cfg, from_pretrained=False):
-
         med_config_path = get_abs_path(cfg.get("med_config_path"))
         med_config = BertConfig.from_json_file(med_config_path)
 

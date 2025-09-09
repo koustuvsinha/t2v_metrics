@@ -1,38 +1,41 @@
 """
- Copyright (c) 2022, salesforce.com, inc.
- All rights reserved.
- SPDX-License-Identifier: BSD-3-Clause
- For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
- 
- Based on huggingface code base
- https://github.com/huggingface/transformers/blob/v4.15.0/src/transformers/models/bert
+Copyright (c) 2022, salesforce.com, inc.
+All rights reserved.
+SPDX-License-Identifier: BSD-3-Clause
+For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
+
+Based on huggingface code base
+https://github.com/huggingface/transformers/blob/v4.15.0/src/transformers/models/bert
 """
 
 import math
-from typing import Optional, Tuple
+from typing import Tuple
 
 import torch
-from torch import Tensor, device
-import torch.utils.checkpoint
-from torch import nn
-from torch.nn import CrossEntropyLoss
 import torch.nn.functional as F
-
-
+import torch.utils.checkpoint
+from torch import Tensor, device, nn
+from torch.nn import CrossEntropyLoss
 from transformers.modeling_outputs import (
     BaseModelOutputWithPastAndCrossAttentions,
     BaseModelOutputWithPoolingAndCrossAttentions,
     CausalLMOutputWithCrossAttentions,
-    MaskedLMOutput
+    MaskedLMOutput,
 )
-from transformers.modeling_utils import (
-    PreTrainedModel,
+from transformers.modeling_utils import PreTrainedModel
+from transformers.models.bert.configuration_bert import BertConfig
+from transformers.pytorch_utils import (
     apply_chunking_to_forward,
 )
 from transformers.utils import logging
-from transformers.models.bert.configuration_bert import BertConfig
 
-from .xbert import BertAttention, BertIntermediate, BertOutput, BertPooler, BertOnlyMLMHead
+from .xbert import (
+    BertAttention,
+    BertIntermediate,
+    BertOnlyMLMHead,
+    BertOutput,
+    BertPooler,
+)
 
 logging.set_verbosity_error()
 logger = logging.get_logger(__name__)
@@ -300,10 +303,12 @@ class BertLayer(nn.Module):
         self.layer_num = layer_num
 
         # compatibility for ALBEF and BLIP
-        if hasattr(self.config, 'cross_freq') and self.config.cross_freq > 0:
+        if hasattr(self.config, "cross_freq") and self.config.cross_freq > 0:
             self.fusion_layer = self.config.num_hidden_layers
-            add_cross_attention = self.config.add_cross_attention and (layer_num % self.config.cross_freq == 0)
-        elif hasattr(self.config, 'fusion_layer'):
+            add_cross_attention = self.config.add_cross_attention and (
+                layer_num % self.config.cross_freq == 0
+            )
+        elif hasattr(self.config, "fusion_layer"):
             # ALBEF & ALPRO
             self.fusion_layer = self.config.fusion_layer
             add_cross_attention = (
@@ -315,12 +320,16 @@ class BertLayer(nn.Module):
             # BLIP
             self.fusion_layer = self.config.num_hidden_layers
             add_cross_attention = self.config.add_cross_attention
-        
-        if hasattr(self.config, 'must_fusion_layer') and layer_num in config.must_fusion_layer:
+
+        if (
+            hasattr(self.config, "must_fusion_layer")
+            and layer_num in config.must_fusion_layer
+        ):
             add_cross_attention = True
 
-
-        logger.info(f'layer_num: {layer_num} fusion_layer: {self.fusion_layer}, add_cross_attention: {add_cross_attention}')
+        logger.info(
+            f"layer_num: {layer_num} fusion_layer: {self.fusion_layer}, add_cross_attention: {add_cross_attention}"
+        )
 
         # if self.config.add_cross_attention:
         if add_cross_attention:
@@ -360,9 +369,9 @@ class BertLayer(nn.Module):
         # TODO line 482 in albef/models/xbert.py
         # compatibility for ALBEF and BLIP
         if mode in ["multimodal", "fusion"] and hasattr(self, "crossattention"):
-            assert (
-                encoder_hidden_states is not None
-            ), "encoder_hidden_states must be given for cross-attention layers"
+            assert encoder_hidden_states is not None, (
+                "encoder_hidden_states must be given for cross-attention layers"
+            )
 
             if isinstance(encoder_hidden_states, list):
                 raise NotImplementedError
@@ -479,7 +488,6 @@ class BertEncoder(nn.Module):
 
             # TODO pay attention to this.
             if self.gradient_checkpointing and self.training:
-
                 if use_cache:
                     logger.warn(
                         "`use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`..."
@@ -545,7 +553,7 @@ class BertEncoder(nn.Module):
             attentions=all_self_attentions,
             cross_attentions=all_cross_attentions,
         )
-    
+
 
 class BertPreTrainedModel(PreTrainedModel):
     """
@@ -858,7 +866,6 @@ class BertModel(BertPreTrainedModel):
 
 
 class BertForMaskedLM(BertPreTrainedModel):
-
     _keys_to_ignore_on_load_unexpected = [r"pooler"]
     _keys_to_ignore_on_load_missing = [r"position_ids", r"predictions.decoder.bias"]
 
@@ -965,9 +972,9 @@ class BertForMaskedLM(BertPreTrainedModel):
         effective_batch_size = input_shape[0]
 
         #  add a dummy token
-        assert (
-            self.config.pad_token_id is not None
-        ), "The PAD token should be defined for generation"
+        assert self.config.pad_token_id is not None, (
+            "The PAD token should be defined for generation"
+        )
         attention_mask = torch.cat(
             [attention_mask, attention_mask.new_zeros((attention_mask.shape[0], 1))],
             dim=-1,
@@ -984,7 +991,6 @@ class BertForMaskedLM(BertPreTrainedModel):
 
 
 class BertLMHeadModel(BertPreTrainedModel):
-
     _keys_to_ignore_on_load_unexpected = [r"pooler"]
     _keys_to_ignore_on_load_missing = [r"position_ids", r"predictions.decoder.bias"]
 
@@ -1159,11 +1165,12 @@ class XBertLMHeadDecoder(BertLMHeadModel):
 
     @classmethod
     def from_config(cls, med_config_path, pretrained=None):
-
         med_config = BertConfig.from_json_file(med_config_path)
 
         if pretrained is not None:
-            return cls.from_pretrained(pretrained, config=med_config, local_files_only=True)
+            return cls.from_pretrained(
+                pretrained, config=med_config, local_files_only=True
+            )
         else:
             return cls(config=med_config)
 
@@ -1179,9 +1186,8 @@ class XBertLMHeadDecoder(BertLMHeadModel):
         min_length=10,
         top_p=0.9,
         repetition_penalty=1.0,
-        **kwargs
+        **kwargs,
     ):
-
         if not use_nucleus_sampling:
             num_beams = num_beams
             visual_embeds = visual_embeds.repeat_interleave(num_beams, dim=0)
@@ -1207,7 +1213,7 @@ class XBertLMHeadDecoder(BertLMHeadModel):
                 eos_token_id=sep_token_id,
                 pad_token_id=pad_token_id,
                 repetition_penalty=1.1,
-                **model_kwargs
+                **model_kwargs,
             )
         else:
             # beam search
@@ -1219,7 +1225,7 @@ class XBertLMHeadDecoder(BertLMHeadModel):
                 eos_token_id=sep_token_id,
                 pad_token_id=pad_token_id,
                 repetition_penalty=repetition_penalty,
-                **model_kwargs
+                **model_kwargs,
             )
 
         return outputs
@@ -1228,14 +1234,17 @@ class XBertLMHeadDecoder(BertLMHeadModel):
 class XBertEncoder(BertModel, BaseEncoder):
     @classmethod
     def from_config(cls, med_config_path, pretrained=None, fusion_layer=None):
-
         med_config = BertConfig.from_json_file(med_config_path)
         if fusion_layer is not None:
             med_config.fusion_layer = fusion_layer
-            
+
         if pretrained is not None:
             return cls.from_pretrained(
-                pretrained, config=med_config, add_pooling_layer=False, local_files_only=True)
+                pretrained,
+                config=med_config,
+                add_pooling_layer=False,
+                local_files_only=True,
+            )
         else:
             return cls(config=med_config, add_pooling_layer=False)
 
