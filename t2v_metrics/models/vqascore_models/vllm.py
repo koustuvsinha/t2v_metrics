@@ -43,7 +43,7 @@ class VLLMModel:
         self, model_name="vllm-perception-lm-8b", device="cuda", cache_dir=None
     ):
         assert model_name in VLLM_MODELS, f"Model {model_name} not found in VLLM_MODELS"
-        self.model_name = model_name
+        self.model_name = VLLM_MODELS[model_name]["path"]
         self.device = device
         self.cache_dir = cache_dir
         self.model_info = VLLM_MODELS[model_name]
