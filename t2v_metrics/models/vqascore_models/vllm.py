@@ -88,6 +88,8 @@ class VLLMModel:
         processed_data = self.load_images(paths, num_tiles)
 
         lm_probs = []
+        processed_prompts = []
+
         for data, question, answer, path in zip(
             processed_data, questions, answers, paths
         ):
@@ -110,26 +112,29 @@ class VLLMModel:
                 add_generation_prompt=True,
             )[0]
 
-            sampling_params = SamplingParams(
-                temperature=0.2,
-                max_tokens=1,
-                stop_token_ids=[self.processor.tokenizer.eos_token_id],
-                allowed_token_ids=[yes_token_id],
-                logprobs=1,
+            processed_prompts.append(
+                {
+                    "prompt": prompt,
+                    "multi_modal_data": {"image": data},
+                }
             )
 
-            outputs = self.model.generate(
-                [
-                    {
-                        "prompt": prompt,
-                        "multi_modal_data": {"image": data},
-                    }
-                ],
-                sampling_params=sampling_params,
-            )
+        sampling_params = SamplingParams(
+            temperature=0.2,
+            max_tokens=1,
+            stop_token_ids=[self.processor.tokenizer.eos_token_id],
+            allowed_token_ids=[yes_token_id],
+            logprobs=1,
+        )
 
+        outputs = self.model.generate(
+            processed_prompts,
+            sampling_params=sampling_params,
+        )
+
+        for output in outputs:
             lm_prob = torch.exp(
-                torch.tensor(outputs[0].outputs[0].logprobs[0][yes_token_id].logprob)
+                torch.tensor(output.outputs[0].logprobs[0][yes_token_id].logprob)
             ).item()
             lm_probs.append(lm_prob)
 
