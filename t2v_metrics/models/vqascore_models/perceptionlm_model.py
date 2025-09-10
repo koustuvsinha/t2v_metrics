@@ -212,7 +212,7 @@ class PerceptionLMModel:
             )
 
             # Run generation for scoring (force output to match expected answer)
-            _, _, _, logits = generator.generate(prompts)  # , force_output=answer)
+            _, logits, _ = generator.generate(prompts)  # , force_output=answer)
             print(f"Vocabulary Length {len(logits[0].shape)}")
 
             ids, _ = self.tokenizer._tokenize_for_generation(question="Yes", media=data)
