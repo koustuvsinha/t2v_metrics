@@ -60,10 +60,10 @@ def get_vqascore_model(model_name, device="cuda", cache_dir=HF_CACHE_DIR, **kwar
         )
     elif model_name in GPT4V_MODELS:
         return GPT4VModel(model_name, device=device, cache_dir=cache_dir, **kwargs)
-    elif model_name in LLAVA_OV_MODELS:
-        return LLaVAOneVisionModel(
-            model_name, device=device, cache_dir=cache_dir, **kwargs
-        )
+    # elif model_name in LLAVA_OV_MODELS:
+    #     return LLaVAOneVisionModel(
+    #         model_name, device=device, cache_dir=cache_dir, **kwargs
+    #     )
     elif model_name in MPLUG_OWL3_MODELS:
         return mPLUGOwl3Model(model_name, device=device, cache_dir=cache_dir, **kwargs)
     elif model_name in PALIGEMMA_MODELS:
@@ -90,10 +90,10 @@ def get_vqascore_model(model_name, device="cuda", cache_dir=HF_CACHE_DIR, **kwar
         return GeminiModel(model_name, device=device, cache_dir=cache_dir, **kwargs)
     elif model_name in QWEN2_VL_MODELS:
         return Qwen2VLModel(model_name, device=device, cache_dir=cache_dir, **kwargs)
-    elif model_name in LLAVA_VIDEO_MODELS:
-        return LLaVAVideoModel(model_name, device=device, cache_dir=cache_dir, **kwargs)
-    elif model_name in TARSIER_MODELS:
-        return TarsierModel(model_name, device=device, cache_dir=cache_dir, **kwargs)
+    # elif model_name in LLAVA_VIDEO_MODELS:
+    #     return LLaVAVideoModel(model_name, device=device, cache_dir=cache_dir, **kwargs)
+    # elif model_name in TARSIER_MODELS:
+    #     return TarsierModel(model_name, device=device, cache_dir=cache_dir, **kwargs)
     elif model_name in PERCEPTION_LM_MODELS:
         return PerceptionLMModel(
             model_name, device=device, cache_dir=cache_dir, **kwargs
