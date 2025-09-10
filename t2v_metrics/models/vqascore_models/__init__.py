@@ -16,6 +16,7 @@ from .mplug_model import MPLUG_OWL3_MODELS, mPLUGOwl3Model
 from .paligemma_model import PALIGEMMA_MODELS, PaliGemmaModel
 from .perceptionlm_model import PERCEPTION_LM_MODELS, PerceptionLMModel
 from .qwen2vl_model import QWEN2_VL_MODELS, Qwen2VLModel
+from .vllm import VLLM_MODELS, VLLMModel
 
 # from .llavavideo_model import LLAVA_VIDEO_MODELS, LLaVAVideoModel
 # from .tarsier_model import TARSIER_MODELS, TarsierModel
@@ -98,6 +99,8 @@ def get_vqascore_model(model_name, device="cuda", cache_dir=HF_CACHE_DIR, **kwar
         return PerceptionLMModel(
             model_name, device=device, cache_dir=cache_dir, **kwargs
         )
+    elif model_name in VLLM_MODELS:
+        return VLLMModel(model_name, device=device, cache_dir=cache_dir, **kwargs)
     else:
         raise NotImplementedError()
 
