@@ -18,7 +18,7 @@ from .perceptionlm_model import PERCEPTION_LM_MODELS, PerceptionLMModel
 from .qwen2vl_model import QWEN2_VL_MODELS, Qwen2VLModel
 
 # from .llavavideo_model import LLAVA_VIDEO_MODELS, LLaVAVideoModel
-from .tarsier_model import TARSIER_MODELS, TarsierModel
+# from .tarsier_model import TARSIER_MODELS, TarsierModel
 
 ALL_VQA_MODELS = [
     CLIP_T5_MODELS,
@@ -37,7 +37,7 @@ ALL_VQA_MODELS = [
     GEMINI_MODELS,
     QWEN2_VL_MODELS,
     # LLAVA_VIDEO_MODELS,
-    TARSIER_MODELS,
+    # TARSIER_MODELS,
     PERCEPTION_LM_MODELS,
 ]
 
