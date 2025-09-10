@@ -83,16 +83,14 @@ class VLLMModel:
         questions = [question_template.format(text) for text in texts]
         answers = [answer_template]
 
-        yes_token_id = self.processor.tokenizer.encode("Yes")[-1]
+        yes_token_id = self.processor.tokenizer.encode(answer_template)[-1]
 
         processed_data = self.load_images(paths, num_tiles)
 
         lm_probs = []
         processed_prompts = []
 
-        for data, question, answer, path in zip(
-            processed_data, questions, answers, paths
-        ):
+        for data, question, path in zip(processed_data, questions, paths):
             media_type = "image"
             # Create prompt
             conversation = [
@@ -100,7 +98,7 @@ class VLLMModel:
                     "role": "user",
                     "content": [
                         {
-                            "type": "image",
+                            "type": media_type,
                             "image": path,
                         },
                         {"type": "text", "text": question},
@@ -115,7 +113,7 @@ class VLLMModel:
             processed_prompts.append(
                 {
                     "prompt": prompt,
-                    "multi_modal_data": {"image": data},
+                    "multi_modal_data": {media_type: data},
                 }
             )
 
