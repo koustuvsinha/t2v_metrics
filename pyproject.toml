@@ -72,7 +72,6 @@ dependencies = [
     "wandb",
     "torchcodec==0.1",
     "moviepy",
-    "apex==0.9.10dev",
     "deepspeed",
     "fvcore==0.1.5.post20221221",
     "imageio==2.31.1",
