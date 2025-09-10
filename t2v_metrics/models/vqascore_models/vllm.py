@@ -1,17 +1,11 @@
 ## VLLM implementation for any model supported by VLLM
 import os
-
-# current_dir = os.path.dirname(os.path.abspath(__file__))
-# current_dir = os.path.join(current_dir, "perceptionlm")
-# print(f'current_dir {current_dir}')
 from typing import List, Union
 
 import torch
 from PIL import Image
 from transformers import AutoProcessor
 from vllm import LLM, SamplingParams
-
-# sys.path.append(current_dir)
 
 VLLM_MODELS = {
     "vllm-perception-lm-1b": {
@@ -52,7 +46,7 @@ class VLLMModel:
         self.tmp_files = []
 
     def load_model(self):
-        self.model = LLM(model=self.model_name)
+        self.model = LLM(model=self.model_name, gpu_memory_utilization=0.5)
         self.processor = AutoProcessor.from_pretrained(self.model_name, use_fast=True)
 
     def load_images(
@@ -134,7 +128,9 @@ class VLLMModel:
                 sampling_params=sampling_params,
             )
 
-            lm_prob = outputs[0].outputs[0].logprobs[yes_token_id].logprob
+            lm_prob = torch.exp(
+                torch.tensor(outputs[0].outputs[0].logprobs[0][yes_token_id].logprob)
+            ).item()
             lm_probs.append(lm_prob)
 
         self.clear_temp_files()
